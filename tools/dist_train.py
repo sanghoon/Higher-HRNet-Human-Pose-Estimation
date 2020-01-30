@@ -142,6 +142,8 @@ def main_worker(
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
+        gpu = int(gpu)
+        args.gpu = int(args.gpu)
 
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
@@ -192,7 +194,7 @@ def main_worker(
         dump_input = torch.rand(
             (1, 3, cfg.DATASET.INPUT_SIZE, cfg.DATASET.INPUT_SIZE)
         )
-        writer_dict['writer'].add_graph(model, (dump_input, ))
+        # writer_dict['writer'].add_graph(model, (dump_input, ))
         # logger.info(get_model_summary(model, dump_input, verbose=cfg.VERBOSE))
 
     if cfg.FP16.ENABLED:
@@ -293,7 +295,7 @@ def main_worker(
                 'epoch': epoch + 1,
                 'model': cfg.MODEL.NAME,
                 'state_dict': model.state_dict(),
-                'best_state_dict': model.module.state_dict(),
+                'best_state_dict': getattr(model, 'module', model).state_dict(),  # Unwrap DataPrallel
                 'perf': perf_indicator,
                 'optimizer': optimizer.state_dict(),
             }, best_model, final_output_dir)
@@ -304,7 +306,7 @@ def main_worker(
 
     logger.info('saving final model state to {}'.format(
         final_model_state_file))
-    torch.save(model.module.state_dict(), final_model_state_file)
+    torch.save(getattr(model, 'module', model).state_dict(), final_model_state_file)
     writer_dict['writer'].close()
 
 

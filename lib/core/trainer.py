@@ -36,6 +36,8 @@ def do_train(cfg, model, data_loader, loss_factory, optimizer, epoch,
         # measure data loading time
         data_time.update(time.time() - end)
 
+        images = images.cuda()
+
         # compute output
         outputs = model(images)
 
