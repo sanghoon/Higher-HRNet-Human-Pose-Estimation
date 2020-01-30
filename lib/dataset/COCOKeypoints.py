@@ -60,6 +60,9 @@ class CocoKeypoints(CocoDataset):
         self.heatmap_generator = heatmap_generator
         self.joints_generator = joints_generator
 
+        # Skip small annotations for better accuracy @ larger persons
+        self.skip_small = cfg.DATASET.SKIP_SMALL_ANNOS
+
     def __getitem__(self, idx):
         img, anno = super().__getitem__(idx)
 
@@ -81,6 +84,35 @@ class CocoKeypoints(CocoDataset):
             img, mask_list, joints_list = self.transforms(
                 img, mask_list, joints_list
             )
+
+        if self.skip_small:
+            def is_large_enough(anno, scale):
+                min_size_length = 24 * (scale + 1)
+                min_size_area = min_size_length ** 2
+
+                valid_kps = anno[:, 2] > 0.0  # Extract keypoints with annotation (visibility > 0.0)
+                if not valid_kps.any():
+                    # No keypoints to compare (all 0.0) => ignore it
+                    return False
+
+                min_x, max_x = min(anno[valid_kps, 0]), max(anno[valid_kps, 0])
+                min_y, max_y = min(anno[valid_kps, 1]), max(anno[valid_kps, 1])
+
+                person_size = (max_x - min_x) * (max_y - min_y)
+                return person_size >= min_size_area
+
+            for scale in range(len(joints_list)):
+                filtered_joints = []
+                for anno in joints_list[scale]:
+                    if is_large_enough(anno, scale):
+                        filtered_joints.append(anno)
+                    else:
+                        # If an annotation is too small, ignore it
+                        pass
+
+                joints_list[scale] = np.array(filtered_joints).reshape(-1, 17, 3)
+
+            assert len(joints_list[0]) == len(joints_list[1])
 
         for scale_id in range(self.num_scales):
             target_t = self.heatmap_generator[scale_id](joints_list[scale_id])
