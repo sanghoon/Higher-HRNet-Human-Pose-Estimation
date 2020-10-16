@@ -142,9 +142,8 @@ def main_worker(
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
-        gpu = int(gpu)
-        args.gpu = int(args.gpu)
 
+    update_config(cfg, args)
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
             args.rank = int(os.environ["RANK"])
@@ -160,8 +159,6 @@ def main_worker(
             world_size=args.world_size,
             rank=args.rank
         )
-
-    update_config(cfg, args)
 
     # setup logger
     logger, _ = setup_logger(final_output_dir, args.rank, 'train')
@@ -220,8 +217,11 @@ def main_worker(
             # available GPUs if device_ids are not set
             model = torch.nn.parallel.DistributedDataParallel(model)
     elif args.gpu is not None:
-        torch.cuda.set_device(args.gpu)
-        model = model.cuda(args.gpu)
+        # args.gpu = int(args.gpu)
+        # torch.cuda.set_device(args.gpu)
+        # model = model.cuda(args.gpu)
+        device_ids = [int(i) for i in args.gpu.split(',') if i]
+        model = torch.nn.DataParallel(model, device_ids=device_ids).cuda()
     else:
         model = torch.nn.DataParallel(model).cuda()
 
