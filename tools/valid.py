@@ -53,6 +53,11 @@ def parse_args():
                         required=True,
                         type=str)
 
+    parser.add_argument('--summary',
+                        help='Print out model summary only (w/o validation)',
+                        default=False,
+                        action='store_true')
+
     parser.add_argument('opts',
                         help="Modify config options using the command-line",
                         default=None,
@@ -109,6 +114,9 @@ def main():
         (1, 3, cfg.DATASET.INPUT_SIZE, cfg.DATASET.INPUT_SIZE)
     )
     logger.info(get_model_summary(model, dump_input, verbose=cfg.VERBOSE))
+
+    if args.summary:
+        exit(0)
 
     if cfg.FP16.ENABLED:
         model = network_to_half(model)
