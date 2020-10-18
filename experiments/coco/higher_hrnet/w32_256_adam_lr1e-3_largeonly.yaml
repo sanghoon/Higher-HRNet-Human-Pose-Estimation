@@ -26,7 +26,7 @@ DATASET:
   ROOT: 'data/coco'
   TEST: val2017
   TRAIN: train2017
-  SKIP_SMALL_ANNOS: False
+  SKIP_SMALL_ANNOS: True
 DEBUG:
   DEBUG: True
   SAVE_BATCH_IMAGES_GT: False
